@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "fmt": "deno fmt src scripts README.md deno.json",
+    "check": "deno check src/content.js scripts/build.ts scripts/generate_icons.ts scripts/pack.ts",
+    "icons": "deno run --allow-write=src/icons scripts/generate_icons.ts",
+    "build": "deno run --allow-read --allow-write scripts/build.ts",
+    "pack": "deno run --allow-read --allow-write --allow-run=zip scripts/pack.ts",
+    "verify": "deno task fmt && deno task check && deno task build"
+  }
+}
