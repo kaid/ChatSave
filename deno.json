@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "fmt": "deno fmt src scripts README.md deno.json",
+    "fmt": "deno fmt src scripts README.md PRIVACY.md deno.json",
     "check": "deno check src/content.js scripts/build.ts scripts/generate_icons.ts scripts/pack.ts",
     "icons": "deno run --allow-write=src/icons scripts/generate_icons.ts",
     "build": "deno run --allow-read --allow-write scripts/build.ts",

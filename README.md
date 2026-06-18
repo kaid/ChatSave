@@ -60,6 +60,10 @@ dist/chat-save-v1.0.4.zip
 
 Use the zip file for manual distribution or Chrome Web Store upload.
 
+## Privacy
+
+See [PRIVACY.md](./PRIVACY.md).
+
 ## Commands
 
 ```sh
