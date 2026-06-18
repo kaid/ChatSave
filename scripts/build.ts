@@ -27,6 +27,8 @@ async function copyDir(source: URL, destination: URL): Promise<void> {
   await Deno.mkdir(destination, { recursive: true });
 
   for await (const entry of Deno.readDir(source)) {
+    if (shouldSkipPackageEntry(entry.name)) continue;
+
     const sourceEntry = new URL(entry.name, source);
     const destinationEntry = new URL(entry.name, destination);
 
@@ -42,6 +44,10 @@ async function copyDir(source: URL, destination: URL): Promise<void> {
       await Deno.copyFile(sourceEntry, destinationEntry);
     }
   }
+}
+
+function shouldSkipPackageEntry(name: string): boolean {
+  return name === ".DS_Store";
 }
 
 async function validateManifest(packageDir: URL): Promise<Manifest> {
