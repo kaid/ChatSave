@@ -157,12 +157,12 @@ function drawPolygon(
 function renderSample(x: number, y: number): Rgba {
   let pixel = transparent;
 
-  pixel = drawRoundRect(pixel, x, y, 13, 15, 102, 98, 26, withAlpha(ink, 0.12));
+  pixel = drawRoundRect(pixel, x, y, 13, 15, 102, 98, 26, withAlpha(ink, 0.1));
   pixel = drawRoundRect(pixel, x, y, 10, 10, 104, 104, 27, ink);
-  pixel = drawRoundRect(pixel, x, y, 15, 15, 94, 94, 23, paper);
+  pixel = drawRoundRect(pixel, x, y, 14, 14, 96, 96, 24, paper);
 
   pixel = drawRoundRect(pixel, x, y, 29, 20, 45, 27, 14, ink);
-  pixel = drawRoundRect(pixel, x, y, 34, 25, 35, 17, 9, yellow);
+  pixel = drawRoundRect(pixel, x, y, 33, 24, 37, 19, 10, yellow);
 
   pixel = drawRoundRect(pixel, x, y, 21, 33, 73, 58, 19, ink);
   pixel = drawPolygon(pixel, x, y, [
@@ -170,37 +170,37 @@ function renderSample(x: number, y: number): Rgba {
     { x: 39, y: 101 },
     { x: 56, y: 87 },
   ], ink);
-  pixel = drawRoundRect(pixel, x, y, 27, 39, 61, 46, 14, white);
+  pixel = drawRoundRect(pixel, x, y, 26, 38, 63, 48, 15, white);
   pixel = drawPolygon(pixel, x, y, [
     { x: 45, y: 79 },
     { x: 43, y: 91 },
     { x: 55, y: 81 },
   ], white);
 
-  pixel = drawRoundRect(pixel, x, y, 40, 52, 34, 6, 3, lineInk);
-  pixel = drawRoundRect(pixel, x, y, 40, 65, 24, 6, 3, lineInk);
+  pixel = drawRoundRect(pixel, x, y, 40, 53, 33, 5, 2.5, lineInk);
+  pixel = drawRoundRect(pixel, x, y, 40, 66, 25, 5, 2.5, lineInk);
 
-  pixel = drawCircle(pixel, x, y, 89, 84, 28, withAlpha(ink, 0.16));
-  pixel = drawCircle(pixel, x, y, 86, 81, 28, ink);
-  pixel = drawCircle(pixel, x, y, 86, 81, 22, white);
+  pixel = drawCircle(pixel, x, y, 88, 83, 27, withAlpha(ink, 0.12));
+  pixel = drawCircle(pixel, x, y, 85, 80, 27, ink);
+  pixel = drawCircle(pixel, x, y, 85, 80, 23, white);
 
   pixel = drawPolygon(pixel, x, y, [
-    { x: 75, y: 79 },
-    { x: 82, y: 79 },
-    { x: 82, y: 65 },
-    { x: 91, y: 65 },
-    { x: 91, y: 79 },
-    { x: 98, y: 79 },
-    { x: 86.5, y: 94 },
+    { x: 74.5, y: 78 },
+    { x: 81, y: 78 },
+    { x: 81, y: 65 },
+    { x: 90, y: 65 },
+    { x: 90, y: 78 },
+    { x: 96.5, y: 78 },
+    { x: 85.5, y: 92 },
   ], ink);
   pixel = drawPolygon(pixel, x, y, [
-    { x: 79, y: 81 },
-    { x: 84, y: 81 },
-    { x: 84, y: 69 },
-    { x: 89, y: 69 },
-    { x: 89, y: 81 },
-    { x: 94, y: 81 },
-    { x: 86.5, y: 90 },
+    { x: 78, y: 80 },
+    { x: 83, y: 80 },
+    { x: 83, y: 69 },
+    { x: 88, y: 69 },
+    { x: 88, y: 80 },
+    { x: 93, y: 80 },
+    { x: 85.5, y: 88.5 },
   ], green);
 
   return pixel;
