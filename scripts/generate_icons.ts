@@ -1,7 +1,18 @@
 const ICON_DIR = new URL("../src/icons/", import.meta.url);
 const ICON_SIZES = [16, 32, 48, 128] as const;
+const DESIGN_SIZE = 128;
+const SAMPLE_GRID = 4;
 
 type Rgba = [number, number, number, number];
+type Point = { x: number; y: number };
+
+const transparent: Rgba = [0, 0, 0, 0];
+const ink: Rgba = [28, 27, 24, 1];
+const paper: Rgba = [255, 250, 241, 1];
+const white: Rgba = [255, 255, 255, 1];
+const yellow: Rgba = [245, 213, 74, 1];
+const green: Rgba = [42, 177, 123, 1];
+const lineInk: Rgba = [62, 58, 50, 1];
 
 function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff;
@@ -49,91 +60,174 @@ async function deflate(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function blend(source: Rgba, target: Rgba, alpha: number): Rgba {
-  const inverse = 1 - alpha;
+function over(bottom: Rgba, top: Rgba): Rgba {
+  const alpha = top[3] + bottom[3] * (1 - top[3]);
+  if (alpha <= 0) return transparent;
   return [
-    Math.round(source[0] * alpha + target[0] * inverse),
-    Math.round(source[1] * alpha + target[1] * inverse),
-    Math.round(source[2] * alpha + target[2] * inverse),
-    Math.round(source[3] * alpha + target[3] * inverse),
+    (top[0] * top[3] + bottom[0] * bottom[3] * (1 - top[3])) / alpha,
+    (top[1] * top[3] + bottom[1] * bottom[3] * (1 - top[3])) / alpha,
+    (top[2] * top[3] + bottom[2] * bottom[3] * (1 - top[3])) / alpha,
+    alpha,
   ];
 }
 
-function roundedRectCoverage(
-  x: number,
-  y: number,
-  size: number,
-  inset: number,
-  radius: number,
-): number {
-  const left = inset;
-  const right = size - inset;
-  const top = inset;
-  const bottom = size - inset;
-  const px = x + 0.5;
-  const py = y + 0.5;
-  const cx = Math.max(left + radius, Math.min(px, right - radius));
-  const cy = Math.max(top + radius, Math.min(py, bottom - radius));
-  const distance = Math.hypot(px - cx, py - cy);
-  return Math.max(0, Math.min(1, radius + 0.5 - distance));
+function withAlpha(color: Rgba, alpha: number): Rgba {
+  return [color[0], color[1], color[2], color[3] * alpha];
 }
 
-function insideLine(
+function insideRoundRect(
   x: number,
   y: number,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
+  left: number,
+  top: number,
   width: number,
+  height: number,
+  radius: number,
 ): boolean {
-  const px = x + 0.5;
-  const py = y + 0.5;
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lengthSq = dx * dx + dy * dy;
-  const t = Math.max(
-    0,
-    Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq),
-  );
-  const lx = ax + dx * t;
-  const ly = ay + dy * t;
-  return Math.hypot(px - lx, py - ly) <= width / 2;
+  const right = left + width;
+  const bottom = top + height;
+  const cx = Math.max(left + radius, Math.min(x, right - radius));
+  const cy = Math.max(top + radius, Math.min(y, bottom - radius));
+  return Math.hypot(x - cx, y - cy) <= radius;
 }
 
-function iconPixel(x: number, y: number, size: number): Rgba {
-  const transparent: Rgba = [0, 0, 0, 0];
-  const inset = size * 0.08;
-  const radius = size * 0.22;
-  const coverage = roundedRectCoverage(x, y, size, inset, radius);
-  if (coverage <= 0) return transparent;
+function insideCircle(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  radius: number,
+): boolean {
+  return Math.hypot(x - cx, y - cy) <= radius;
+}
 
-  const top: Rgba = [28, 95, 242, 255];
-  const bottom: Rgba = [16, 175, 128, 255];
-  const background = blend(bottom, top, y / Math.max(1, size - 1));
-  background[3] = Math.round(255 * coverage);
+function insidePolygon(x: number, y: number, points: Point[]): boolean {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const pi = points[i];
+    const pj = points[j];
+    if (
+      (pi.y > y) !== (pj.y > y) &&
+      x < ((pj.x - pi.x) * (y - pi.y)) / (pj.y - pi.y) + pi.x
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
-  const stroke = Math.max(1.4, size * 0.085);
-  const cx = size / 2;
-  const trayY = size * 0.7;
-  const trayLeft = size * 0.29;
-  const trayRight = size * 0.71;
-  const stemTop = size * 0.25;
-  const stemBottom = size * 0.57;
-  const arrowY = size * 0.57;
-  const arrowLeft = size * 0.38;
-  const arrowRight = size * 0.62;
-  const arrowBottom = size * 0.68;
+function drawRoundRect(
+  pixel: Rgba,
+  x: number,
+  y: number,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  radius: number,
+  color: Rgba,
+): Rgba {
+  return insideRoundRect(x, y, left, top, width, height, radius)
+    ? over(pixel, color)
+    : pixel;
+}
 
-  const isGlyph = insideLine(x, y, cx, stemTop, cx, stemBottom, stroke) ||
-    insideLine(x, y, arrowLeft, arrowY, cx, arrowBottom, stroke) ||
-    insideLine(x, y, arrowRight, arrowY, cx, arrowBottom, stroke) ||
-    insideLine(x, y, trayLeft, trayY, trayRight, trayY, stroke) ||
-    insideLine(x, y, trayLeft, trayY, trayLeft, trayY - size * 0.12, stroke) ||
-    insideLine(x, y, trayRight, trayY, trayRight, trayY - size * 0.12, stroke);
+function drawCircle(
+  pixel: Rgba,
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: Rgba,
+): Rgba {
+  return insideCircle(x, y, cx, cy, radius) ? over(pixel, color) : pixel;
+}
 
-  if (!isGlyph) return background;
-  return blend([255, 255, 255, 255], background, 0.95);
+function drawPolygon(
+  pixel: Rgba,
+  x: number,
+  y: number,
+  points: Point[],
+  color: Rgba,
+): Rgba {
+  return insidePolygon(x, y, points) ? over(pixel, color) : pixel;
+}
+
+function renderSample(x: number, y: number): Rgba {
+  let pixel = transparent;
+
+  pixel = drawRoundRect(pixel, x, y, 13, 15, 102, 98, 26, withAlpha(ink, 0.12));
+  pixel = drawRoundRect(pixel, x, y, 10, 10, 104, 104, 27, ink);
+  pixel = drawRoundRect(pixel, x, y, 15, 15, 94, 94, 23, paper);
+
+  pixel = drawRoundRect(pixel, x, y, 29, 20, 45, 27, 14, ink);
+  pixel = drawRoundRect(pixel, x, y, 34, 25, 35, 17, 9, yellow);
+
+  pixel = drawRoundRect(pixel, x, y, 21, 33, 73, 58, 19, ink);
+  pixel = drawPolygon(pixel, x, y, [
+    { x: 42, y: 84 },
+    { x: 39, y: 101 },
+    { x: 56, y: 87 },
+  ], ink);
+  pixel = drawRoundRect(pixel, x, y, 27, 39, 61, 46, 14, white);
+  pixel = drawPolygon(pixel, x, y, [
+    { x: 45, y: 79 },
+    { x: 43, y: 91 },
+    { x: 55, y: 81 },
+  ], white);
+
+  pixel = drawRoundRect(pixel, x, y, 40, 52, 34, 6, 3, lineInk);
+  pixel = drawRoundRect(pixel, x, y, 40, 65, 24, 6, 3, lineInk);
+
+  pixel = drawCircle(pixel, x, y, 89, 84, 28, withAlpha(ink, 0.16));
+  pixel = drawCircle(pixel, x, y, 86, 81, 28, ink);
+  pixel = drawCircle(pixel, x, y, 86, 81, 22, white);
+
+  pixel = drawPolygon(pixel, x, y, [
+    { x: 75, y: 79 },
+    { x: 82, y: 79 },
+    { x: 82, y: 65 },
+    { x: 91, y: 65 },
+    { x: 91, y: 79 },
+    { x: 98, y: 79 },
+    { x: 86.5, y: 94 },
+  ], ink);
+  pixel = drawPolygon(pixel, x, y, [
+    { x: 79, y: 81 },
+    { x: 84, y: 81 },
+    { x: 84, y: 69 },
+    { x: 89, y: 69 },
+    { x: 89, y: 81 },
+    { x: 94, y: 81 },
+    { x: 86.5, y: 90 },
+  ], green);
+
+  return pixel;
+}
+
+function samplePixel(x: number, y: number, size: number): Rgba {
+  const scale = DESIGN_SIZE / size;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let a = 0;
+
+  for (let sy = 0; sy < SAMPLE_GRID; sy++) {
+    for (let sx = 0; sx < SAMPLE_GRID; sx++) {
+      const sampleX = (x + (sx + 0.5) / SAMPLE_GRID) * scale;
+      const sampleY = (y + (sy + 0.5) / SAMPLE_GRID) * scale;
+      const pixel = renderSample(sampleX, sampleY);
+      r += pixel[0] * pixel[3];
+      g += pixel[1] * pixel[3];
+      b += pixel[2] * pixel[3];
+      a += pixel[3];
+    }
+  }
+
+  const count = SAMPLE_GRID * SAMPLE_GRID;
+  if (a <= 0) return transparent;
+  return [r / a, g / a, b / a, a / count];
 }
 
 async function createPng(size: number): Promise<Uint8Array> {
@@ -142,12 +236,12 @@ async function createPng(size: number): Promise<Uint8Array> {
   for (let y = 0; y < size; y++) {
     raw[y * rowLength] = 0;
     for (let x = 0; x < size; x++) {
-      const [r, g, b, a] = iconPixel(x, y, size);
+      const [r, g, b, a] = samplePixel(x, y, size);
       const offset = y * rowLength + 1 + x * 4;
-      raw[offset] = r;
-      raw[offset + 1] = g;
-      raw[offset + 2] = b;
-      raw[offset + 3] = a;
+      raw[offset] = Math.round(r);
+      raw[offset + 1] = Math.round(g);
+      raw[offset + 2] = Math.round(b);
+      raw[offset + 3] = Math.round(a * 255);
     }
   }
 
